@@ -13,7 +13,7 @@ def getconfigs(file):
     return apitoken,url,blockinterval,minmissedblocks,channel_ids
 
 def getdelegates(url):
-    delegates = pd.DataFrame(requests.get(url+'delegates?orderBy=vote').json()['delegates'])
+    delegates = pd.DataFrame(requests.get(url+'api/delegates?orderBy=vote').json()['delegates'])
     delegates['vote']=pd.to_numeric(delegates['vote'])
     return delegates
 
