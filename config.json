@@ -1,0 +1,9 @@
+{
+	"slackapitoken":"xoxb-___________________________",
+	"apinode":"https://wallet.lwf.io/api/",
+	"missedblockinterval":25,
+	"minmissedblocks":1,
+	"channel_ids":[
+			"D9SQZV7BK"
+			]
+}
