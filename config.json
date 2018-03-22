@@ -1,6 +1,6 @@
 {
 	"slackapitoken":"xoxb-333402997506-VKIkog566zJqBf67vJ3PqAd3",
-	"apinode":"https://wallet.lwf.io/api/",
+	"apinode":"https://wallet.lwf.io/",
 	"missedblockinterval":25,
 	"minmissedblocks":1,
 	"channel_ids":[
