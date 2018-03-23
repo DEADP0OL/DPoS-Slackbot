@@ -1,5 +1,4 @@
 import pandas as pd
-import numpy as np
 import requests
 import json
 
@@ -56,7 +55,7 @@ def processdelegates(delegatesnew,delegates):
 def makemissedblockmsglist(delegates,blockinterval,minmissedblocks):
     missedblockmsglist=[]
     for index, row in delegates.iterrows():
-        if (row['newmissedblocks']>=minmissedblocks)and((row['missedblocksmsg']==0)or(row['newmissedblocks']-row['missedblocksmsg']>blockinterval)):
+        if ((row['newmissedblocks']>=minmissedblocks)and(row['newmissedblocks']>row['missedblocksmsg']))and((row['missedblocksmsg']<=1)or(row['newmissedblocks']-row['missedblocksmsg']>blockinterval)):
             missedblockmsglist.append({"username":row['username'],"missedblocksmsg":row['newmissedblocks']})
     for i in missedblockmsglist:
         delegates.loc[delegates['username']==i["username"], ['missedblocksmsg']] = i["missedblocksmsg"]
@@ -83,7 +82,7 @@ def makemissedblockmsg(missedblockmsglist):
             if message!="":
                 message=message+"\n"
             if i["missedblocksmsg"]>1:
-                message=message+"Delegate "+i["username"] +" red. Missed " + str(i["missedblocksmsg"]) + " blocks. :alert:"
+                message=message+i["username"] +" red. Missed " + str(int(i["missedblocksmsg"])) + " blocks. :alert:"
             else:
-                message=message+"Delegate "+i["username"] +" yellow. Missed " + str(i["missedblocksmsg"]) + " block. :alert:"
+                message=message+i["username"] +" yellow. Missed " + str(int(i["missedblocksmsg"])) + " block. :warning:"
     return message
