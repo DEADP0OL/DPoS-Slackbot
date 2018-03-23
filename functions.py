@@ -1,6 +1,8 @@
 import pandas as pd
+import numpy as np
 import requests
 import json
+
 from slackclient import SlackClient
 
 def getconfigs(file):
@@ -47,6 +49,7 @@ def processdelegates(delegatesnew,delegates):
         delegatesnew.loc[delegatesnew['missedblocks']-delegatesnew['missedold']>0, ['newproducedblocks']] = 0
         delegatesnew['newproducedblocks']=delegatesnew['newproducedblocks']+delegatesnew['producedblocks']-delegatesnew['producedold']
         delegatesnew.loc[delegatesnew['producedblocks']-delegatesnew['producedold']>0, ['newmissedblocks','missedblocksmsg']] = 0
+        delegatesnew.loc[delegatesnew['newmissedblocks'].isnull(), ['newmissedblocks','missedblocksmsg','newproducedblocks']] = 0
         delegatesnew=delegatesnew.drop(['missedold','producedold','msgold'],axis=1)
         return delegatesnew
 
@@ -82,5 +85,5 @@ def makemissedblockmsg(missedblockmsglist):
             if i["missedblocksmsg"]>1:
                 message=message+"Delegate "+i["username"] +" red. Missed " + str(i["missedblocksmsg"]) + " blocks. :alert:"
             else:
-                message=message+"Delegate "+i["username"] +" red. Missed " + str(i["missedblocksmsg"]) + " block. :alert:"
+                message=message+"Delegate "+i["username"] +" yellow. Missed " + str(i["missedblocksmsg"]) + " block. :alert:"
     return message
