@@ -52,6 +52,15 @@ def processdelegates(delegatesnew,delegates):
         delegatesnew=delegatesnew.drop(['missedold','producedold','msgold'],axis=1)
         return delegatesnew
 
+def checknames(name):
+    names=[]
+    names.append(name)
+    modifications={'_voting':'','_pool':''}
+    for x,y in modifications.items():
+        if x in name:
+            names.append(name.replace(x,y))
+    return names
+
 def makemissedblockmsglist(delegates,blockinterval,minmissedblocks):
     missedblockmsglist=[]
     for index, row in delegates.iterrows():
@@ -66,13 +75,15 @@ def modifymissedblockmsglist(missedblockmsglist,usernames,userlist):
     for i in missedblockmsglist:
         print(i)
         name=i["username"]
+        names=checknames(name)
         for j in usernames:
             if name == j["delegate"]:
-                name = j["username"]
-                for x in userlist:
-                    if name==x["profile"].get('display_name'):
-                        name="<@"+x.get('id')+">"
-                i["username"]=name
+                name=j["username"]
+                names.append(name)
+        for x in userlist:
+            if x["profile"].get('display_name') in names:
+                name="<@"+x.get('id')+">"
+        i["username"]=name
         newmissedblockmsglist.append(i)
     return newmissedblockmsglist
 
