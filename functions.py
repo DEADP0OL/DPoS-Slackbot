@@ -18,6 +18,10 @@ def getdelegates(url):
     delegates['vote']=pd.to_numeric(delegates['vote'])
     return delegates
 
+def getheight(url):
+    height = requests.get(url+'api/blocks/getHeight').json()['height']
+    return height
+
 def getdmchannelid(userid,apitoken):
     slack_client = SlackClient(apitoken)
     api_call = slack_client.api_call("im.open",user=userid)
@@ -54,7 +58,7 @@ def processdelegates(delegatesnew,delegates):
 
 def checknames(name):
     names=[]
-    names.append(name)
+    names.append(name.lower())
     modifications={'_voting':'','_pool':''}
     for x,y in modifications.items():
         if x in name:
@@ -70,30 +74,50 @@ def makemissedblockmsglist(delegates,blockinterval,minmissedblocks):
         delegates.loc[delegates['username']==i["username"], ['missedblocksmsg']] = i["missedblocksmsg"]
     return delegates,missedblockmsglist
 
+def makemissedblocklist(delegates,blockinterval,minmissedblocks):
+    missedblockmsglist=[]
+    for index, row in delegates.iterrows():
+        if ((row['newmissedblocks']>=minmissedblocks))and((row['missedblocksmsg']<=1)or(row['newmissedblocks']-row['missedblocksmsg']>=blockinterval)):
+            missedblockmsglist.append({"username":row['username'],"missedblocksmsg":row['newmissedblocks']})
+    for i in missedblockmsglist:
+        delegates.loc[delegates['username']==i["username"], ['missedblocksmsg']] = i["missedblocksmsg"]
+    return delegates,missedblockmsglist
+
 def modifymissedblockmsglist(missedblockmsglist,usernames,userlist):
     newmissedblockmsglist=[]
     for i in missedblockmsglist:
-        print(i)
         name=i["username"]
         names=checknames(name)
         for j in usernames:
             if name == j["delegate"]:
                 name=j["username"]
-                names.append(name)
+                names.append(name.lower())
         for x in userlist:
-            if x["profile"].get('display_name') in names:
+            if x["profile"].get('display_name').lower() in names:
                 name="<@"+x.get('id')+">"
         i["username"]=name
         newmissedblockmsglist.append(i)
     return newmissedblockmsglist
 
-def makemissedblockmsg(missedblockmsglist):
+def makemissedblockmsg(missedblockmsglist,blockinterval):
     message=""
     for i in missedblockmsglist:
             if message!="":
                 message=message+"\n"
-            if i["missedblocksmsg"]>1:
-                message=message+i["username"] +" red. Missed " + str(int(i["missedblocksmsg"])) + " blocks. :alert:"
+            if i["missedblocksmsg"]>blockinterval:
+                message=message+i["username"] +" still red :alert:"     
+            elif i["missedblocksmsg"]>1:
+                message=message+i["username"] +" red :alert:"
             else:
-                message=message+i["username"] +" yellow. Missed " + str(int(i["missedblocksmsg"])) + " block. :warning:"
+                message=message+i["username"] +" yellow :warning:"
+    return message
+
+def makerednodesmsg(missedblockmsglist):
+    message=":alert: "
+    for i in missedblockmsglist:
+        if message != ":alert: ":
+            message=message+", "+i["username"]
+        else:
+            message=message+i["username"]
+    message=message+" red. :alert:"
     return message
