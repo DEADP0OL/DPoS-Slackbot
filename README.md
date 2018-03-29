@@ -9,5 +9,3 @@ Currently the script is focused on notifying delegates and voters of missed bloc
 - Blockchain metric responses
   - Block Height
   - Inactive "red" nodes
-  - Consensus
-
