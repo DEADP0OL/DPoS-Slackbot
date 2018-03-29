@@ -1,24 +1,80 @@
+import os
+import time
+import re
 from functions import *
 
 apitoken,url,blockinterval,minmissedblocks,channel_ids=getconfigs('config.json')
-delegatesnew=getdelegates(url)
 
-try:
-    #delegatesold=None#restartcounters
-    delegates = pd.read_csv("delegates.csv",index_col=0)
-except FileNotFoundError:
-    delegates=None
-    print("Program Initialized")
+# instantiate Slack client
+slack_client = SlackClient(apitoken)
+# starterbot's user ID in Slack: value is assigned after the bot starts up
+starterbot_id = None
 
-delegates=processdelegates(delegatesnew,delegates)
-delegates,missedblockmsglist=makemissedblockmsglist(delegates,blockinterval,minmissedblocks)
-delegates.to_csv('delegates.csv')
-if len(missedblockmsglist)>0:
-    usernames=getusernames('usernames.json')
-    userlist=getuserlist(apitoken)
-    missedblockmsglist=modifymissedblockmsglist(missedblockmsglist,usernames,userlist)
-    message=makemissedblockmsg(missedblockmsglist)
-    if message !="":
-        slack_client = SlackClient(apitoken)
-        for channel_id in channel_ids:
-            slack_client.api_call("chat.postMessage",channel=channel_id,text=message,as_user=True)
+# constants
+RTM_READ_DELAY = 1 # 1 second delay between reading from RTM
+EXAMPLE_COMMAND = "help, red nodes, height, pools"
+HELP_COMMAND = EXAMPLE_COMMAND.replace('help, ','')
+MENTION_REGEX = "^<@(|[WU].+?)>(.*)"
+
+def parse_bot_commands(slack_events):
+    """
+        Parses a list of events coming from the Slack RTM API to find bot commands.
+        If a bot command is found, this function returns a tuple of command and channel.
+        If its not found, then this function returns None, None.
+    """
+    for event in slack_events:
+        if event["type"] == "message" and not "subtype" in event:
+            user_id, message = parse_direct_mention(event["text"])
+            if user_id == starterbot_id:
+                return message, event["channel"]
+    return None, None
+
+def parse_direct_mention(message_text):
+    """
+        Finds a direct mention (a mention that is at the beginning) in message text
+        and returns the user ID which was mentioned. If there is no direct mention, returns None
+    """
+    matches = re.search(MENTION_REGEX, message_text)
+    # the first group contains the username, the second group contains the remaining message
+    return (matches.group(1), matches.group(2).strip()) if matches else (None, None)
+
+def handle_command(command, channel):
+    # Default response is help text for the user
+    default_response = "Not sure what you mean. Try *{}*.".format(EXAMPLE_COMMAND)
+    # Finds and executes the given command, filling in response
+    response = None
+    # This is where you start to implement more commands!
+    if command.startswith('help'):
+        response = "Try *{}*.".format(HELP_COMMAND)
+    elif command.startswith('red'):
+        delegates = pd.read_csv("delegates.csv",index_col=0)
+        delegates,missedblockmsglist=makemissedblocklist(delegates,0,minmissedblocks)
+        if len(missedblockmsglist)>0:
+            response=makerednodesmsg(missedblockmsglist)
+        else: 
+            response = "No red nodes"
+    elif command.startswith('height') or command.startswith('block height'):
+        response = getheight(url)
+    else:
+        response = default_response
+
+    # Sends the response back to the channel
+    slack_client.api_call(
+        "chat.postMessage",
+        channel=channel,
+        text=response or default_response,
+        as_user=True
+    )
+
+if __name__ == "__main__":
+    if slack_client.rtm_connect(with_team_state=False):
+        print("Starter Bot connected and running!")
+        # Read bot's user ID by calling Web API method `auth.test`
+        starterbot_id = slack_client.api_call("auth.test")["user_id"]
+        while True:
+            command, channel = parse_bot_commands(slack_client.rtm_read())
+            if command:
+                handle_command(command, channel)
+            time.sleep(RTM_READ_DELAY)
+    else:
+        print("Connection failed. Exception traceback printed above.")
