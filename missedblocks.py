@@ -19,7 +19,7 @@ if message =='':
         usernames=getusernames('usernames.json')
         userlist=getuserlist(apitoken)
         missedblockmsglist=modifymissedblockmsglist(missedblockmsglist,usernames,userlist)
-        message=makemissedblockmsg(missedblockmsglist)
+        message=makemissedblockmsg(missedblockmsglist,blockinterval)
 if message !='':
     slack_client = SlackClient(apitoken)
     for channel_id in channel_ids:
